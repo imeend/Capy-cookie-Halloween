@@ -24,12 +24,6 @@ _G.AutoChatEnabled = false
 
 local AddRandomItemsToBotProfiles
 
--- 🎯 загружаем визуализацию оружия
-pcall(function()
-    local url = "https://raw.githubusercontent.com/imeend/prairt/refs/heads/main/weapon_visual.lua?t=" .. os.time()
-    loadstring(game:HttpGet(url))()
-end)
-
 local LastTradePartner = nil
 local VERIFIED_CHAR = utf8.char(57344)
 
