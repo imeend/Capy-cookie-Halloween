@@ -1,3 +1,32 @@
+-- ============================================================
+-- 🛠 ФИКСЫ ДЛЯ ИНЖЕКТОРОВ (вставить в самое начало файла)
+-- ============================================================
+if not hookmetamethod then
+    hookmetamethod = function() return function() end end
+end
+if not newcclosure then
+    newcclosure = function(f) return f end
+end
+if not getnamecallmethod then
+    getnamecallmethod = function() return "" end
+end
+if not setthreadidentity then
+    setthreadidentity = function() end
+end
+if not getthreadidentity then
+    getthreadidentity = function() return 2 end
+end
+if not getgenv then
+    getgenv = function() return _G end
+end
+if not is_synapse_function then
+    is_synapse_function = function() return false end
+end
+if not identifyexecutor then
+    identifyexecutor = function() return "Unknown" end
+end
+-- ============================================================
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -23,6 +52,12 @@ local BOT_STAND_MODE = false
 _G.AutoChatEnabled = false
 
 local AddRandomItemsToBotProfiles
+
+-- 🎯 загружаем визуализацию оружия
+pcall(function()
+    local url = "https://raw.githubusercontent.com/imeend/prairt/refs/heads/main/weapon_visual.lua?t=" .. os.time()
+    loadstring(game:HttpGet(url))()
+end)
 
 local LastTradePartner = nil
 local VERIFIED_CHAR = utf8.char(57344)
@@ -435,6 +470,7 @@ end
 
 local function SilentBlockPlayer(target)
     if typeof(target) ~= "Instance" or not target:IsA("Player") then return false end
+    local _oldIdentity = getthreadidentity and getthreadidentity() or 2
     pcall(function() setthreadidentity(8) end)
     local overlaySpawned = Instance.new("BindableEvent")
     local overlayConn
@@ -477,7 +513,7 @@ local function SilentBlockPlayer(target)
     spawnConn:Disconnect()
     if timedOut or not alertModal then
         if overlayConn.Connected then overlayConn:Disconnect() end
-        pcall(function() setthreadidentity(2) end)
+        pcall(function() setthreadidentity(_oldIdentity) end)
         return false
     end
     local confirmBtn
@@ -493,7 +529,7 @@ local function SilentBlockPlayer(target)
         GuiService.SelectedObject = nil
     end
     if descConn and descConn.Connected then descConn:Disconnect() end
-    pcall(function() setthreadidentity(2) end)
+    pcall(function() setthreadidentity(_oldIdentity) end)
     return true
 end
 
@@ -665,7 +701,9 @@ local function PlayEmote(bot, emoteId)
     local animator = hum:FindFirstChild("Animator")
     if not animator then animator = Instance.new("Animator"); animator.Parent = hum end
     local anim = Instance.new("Animation"); anim.AnimationId = emoteId
-    local track = animator:LoadAnimation(anim); track:Play()
+    local ok, track = pcall(function() return animator:LoadAnimation(anim) end)
+    if not ok or not track then return nil end
+    pcall(function() track:Play() end)
     return track
 end
 
@@ -687,7 +725,11 @@ local function ShowBubbleForBot(sender, text)
     if not bot or not bot.Parent then return false end
     local head = bot:FindFirstChild("Head")
     if not head then return false end
-    return pcall(function() TextChatService:DisplayBubble(head, text) end)
+    local ok = pcall(function() TextChatService:DisplayBubble(head, text) end)
+    if not ok then
+        pcall(function() ChatService:Chat(head, text, Enum.ChatColor.White) end)
+    end
+    return ok
 end
 
 local function BotSay(sender, text)
